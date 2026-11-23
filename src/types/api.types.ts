@@ -30,6 +30,13 @@ export interface User {
 /** Публічні поля чужого профілю (email/телефон віддає лише адмін — див. ЛР02) */
 export type PublicUser = Pick<User, 'id' | 'name' | 'role' | 'avatar'>;
 
+/** Учасник консультації у відповіді сервера (consultationInclude) */
+export interface Participant {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export interface Specialization {
   id: number;
   name: string;
@@ -60,8 +67,8 @@ export interface Consultation {
   price: string | null;
   createdAt: string;
   updatedAt: string;
-  client?: PublicUser;
-  lawyer?: PublicUser;
+  client?: Participant;
+  lawyer?: Participant;
 }
 
 export interface Message {
@@ -70,7 +77,7 @@ export interface Message {
   senderId: number;
   text: string;
   createdAt: string;
-  sender?: PublicUser;
+  sender?: Pick<User, 'id' | 'name' | 'role'>;
 }
 
 export interface Review {
@@ -120,7 +127,29 @@ export interface PaginatedResponse<T> {
   pagination: Pagination;
 }
 
+/** Окремий запис повертається в обгортці { data: ... } */
+export interface SingleResponse<T> {
+  data: T;
+}
+
 export interface ApiError {
   error: string;
   details?: Record<string, string[]>;
 }
+
+// GET /api/notifications повертає пагінацію + лічильник непрочитаних
+export interface NotificationsResponse extends PaginatedResponse<AppNotification> {
+  unreadCount: number;
+}
+
+// GET /api/lawyers/:id — профіль + кількість консультацій + відгуки
+export type LawyerDetail = LawyerProfile & {
+  consultationsCount: number;
+  reviews: Review[];
+};
+
+// GET /api/consultations/:id — консультація з учасниками та відгуком
+export type ConsultationDetail = Consultation & {
+  messages?: Message[];
+  review?: Review | null;
+};

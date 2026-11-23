@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink } from 'react-router';
 import { APP_NAME, ROUTES } from '@/constants';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuthStore } from '@/stores/authStore';
 import { cn } from '@/utils/cn';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -47,6 +48,7 @@ function ThemeIcon({ theme }: { theme: 'light' | 'dark' }) {
 
 export default function Header() {
   const { theme, toggleTheme } = useTheme();
+  const user = useAuthStore((s) => s.user);
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -77,9 +79,20 @@ export default function Header() {
           <NavLink to={ROUTES.about} className={navLinkClass}>
             Про нас
           </NavLink>
-          <NavLink to={ROUTES.login} className={navLinkClass}>
-            Увійти
-          </NavLink>
+          {user ? (
+            <NavLink to="/dashboard" className={navLinkClass}>
+              Панель ({user.name})
+            </NavLink>
+          ) : (
+            <>
+              <NavLink to={ROUTES.login} className={navLinkClass}>
+                Увійти
+              </NavLink>
+              <NavLink to="/register" className={navLinkClass}>
+                Реєстрація
+              </NavLink>
+            </>
+          )}
           <button
             type="button"
             onClick={toggleTheme}
@@ -140,9 +153,24 @@ export default function Header() {
             <NavLink to={ROUTES.about} className={navLinkClass} onClick={() => setMenuOpen(false)}>
               Про нас
             </NavLink>
-            <NavLink to={ROUTES.login} className={navLinkClass} onClick={() => setMenuOpen(false)}>
-              Увійти
-            </NavLink>
+            {user ? (
+              <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+                Панель ({user.name})
+              </NavLink>
+            ) : (
+              <>
+                <NavLink
+                  to={ROUTES.login}
+                  className={navLinkClass}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Увійти
+                </NavLink>
+                <NavLink to="/register" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+                  Реєстрація
+                </NavLink>
+              </>
+            )}
           </div>
         </div>
       )}

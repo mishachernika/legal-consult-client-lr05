@@ -13,6 +13,8 @@ export const ROUTES = {
   home: '/',
   about: '/about',
   login: '/login',
+  register: '/register',
+  dashboard: '/dashboard',
 } as const;
 
 export const CONTACTS = {
@@ -37,3 +39,23 @@ export const CONSULTATION_STATUS_LABELS: Record<string, string> = {
   COMPLETED: 'Завершена',
   CANCELLED: 'Скасована',
 };
+
+export const CONSULTATION_STATUS_VARIANTS: Record<
+  string,
+  'neutral' | 'info' | 'success' | 'warning' | 'danger'
+> = {
+  PENDING: 'warning',
+  CONFIRMED: 'info',
+  IN_PROGRESS: 'info',
+  COMPLETED: 'success',
+  CANCELLED: 'danger',
+};
+
+// Розділи особистого кабінету (бічна панель): adminOnly — лише для ролі ADMIN
+export const DASHBOARD_NAV = [
+  { to: '/dashboard', label: 'Панель', icon: 'home' },
+  { to: '/consultations', label: 'Консультації', icon: 'chat' },
+  { to: '/lawyers', label: 'Юристи', icon: 'scale' },
+  { to: '/specializations', label: 'Сфери права', icon: 'tag', adminOnly: true },
+  { to: '/notifications', label: 'Сповіщення', icon: 'bell' },
+] as const;
