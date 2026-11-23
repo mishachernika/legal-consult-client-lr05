@@ -1,0 +1,14 @@
+
+> legal-consult-client-lr04@0.0.0 build
+> tsc -b && vite build
+
+[36mvite v8.3.8 [32mbuilding client environment for production...[36m[39m
+transforming...
+✓ 107 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.86 kB │ gzip:  0.51 kB
+dist/assets/index-B-BFBYUH.css   18.37 kB │ gzip:  4.42 kB
+dist/assets/index-BBor3G9Z.js   272.89 kB │ gzip: 86.64 kB
+
+[32m✓ built in 78ms[39m

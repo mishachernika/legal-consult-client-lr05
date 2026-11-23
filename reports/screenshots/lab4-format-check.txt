@@ -1,0 +1,6 @@
+
+> legal-consult-client-lr04@0.0.0 format:check
+> prettier --check src
+
+Checking formatting...
+All matched files use Prettier code style!
