@@ -6,6 +6,12 @@ export const consultationSchema = z.object({
     .number({ error: 'Оберіть юриста' })
     .int()
     .positive({ error: 'Оберіть юриста' }),
+  // clientId обов'язковий лише для ADMIN (для клієнта сервер підставляє req.user.userId)
+  clientId: z.coerce
+    .number({ error: 'Оберіть клієнта' })
+    .int()
+    .positive({ error: 'Оберіть клієнта' })
+    .optional(),
   topic: z.string().min(5, { error: 'Тема має містити мінімум 5 символів' }).max(200, {
     error: 'Тема має містити не більше 200 символів',
   }),

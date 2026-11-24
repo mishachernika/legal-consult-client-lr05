@@ -19,6 +19,8 @@ import {
 } from '@/schemas/consultation.schema';
 import { consultationsService } from '@/services/consultations.service';
 import { lawyersService } from '@/services/lawyers.service';
+import { usersService } from '@/services/users.service';
+import { useAuthStore } from '@/stores/authStore';
 import { getErrorMessage } from '@/utils/errors';
 
 // Одна форма для створення (/consultations/create) і редагування (/consultations/:id/edit):
@@ -29,6 +31,8 @@ export default function ConsultationFormPage() {
   const consultationId = Number(id);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === 'ADMIN';
   // /consultations/create?lawyerId=26 — prefill вибраного юриста з каталогу
   const [searchParams] = useSearchParams();
   const preselectedLawyerId = searchParams.get('lawyerId') ?? '';
@@ -44,6 +48,13 @@ export default function ConsultationFormPage() {
     enabled: isEdit,
   });
 
+  // Список клієнтів потрібен лише адміну (він вибирає, від імені кого створити консультацію)
+  const { data: clients } = useQuery({
+    queryKey: ['users', { role: 'CLIENT', limit: 100 }],
+    queryFn: () => usersService.getAll({ role: 'CLIENT', limit: 100 }),
+    enabled: isAdmin && !isEdit,
+  });
+
   const {
     register,
     handleSubmit,
@@ -52,14 +63,21 @@ export default function ConsultationFormPage() {
     formState: { errors },
   } = useForm<ConsultationFormInput, unknown, ConsultationFormData>({
     resolver: zodResolver(consultationSchema),
-    defaultValues: { lawyerId: preselectedLawyerId, topic: '', description: '', scheduledAt: '' },
+    defaultValues: {
+      lawyerId: preselectedLawyerId,
+      clientId: '',
+      topic: '',
+      description: '',
+      scheduledAt: '',
+    },
   });
 
   // Коли запис завантажився — заповнюємо форму його значеннями
   useEffect(() => {
     if (existing) {
       reset({
-        lawyerId: String(existing.lawyerId),
+        lawyerId: String(existing.lawyerId), // у відповіді lawyerId — це userId
+        clientId: String(existing.clientId),
         topic: existing.topic,
         description: existing.description,
         scheduledAt: existing.scheduledAt ? existing.scheduledAt.slice(0, 16) : '',
@@ -69,12 +87,20 @@ export default function ConsultationFormPage() {
 
   const mutation = useMutation({
     mutationFn: (data: ConsultationFormData) => {
-      const payload = {
+      const payload: {
+        lawyerId: number;
+        topic: string;
+        description: string;
+        scheduledAt?: string;
+        clientId?: number;
+      } = {
         lawyerId: data.lawyerId,
         topic: data.topic,
         description: data.description,
         scheduledAt: data.scheduledAt,
       };
+      // clientId передаємо лише адмін (для клієнта сервер підставляє req.user.userId сам)
+      if (isAdmin && data.clientId) payload.clientId = data.clientId;
       return isEdit
         ? consultationsService.update(consultationId, payload)
         : consultationsService.create(payload);
@@ -106,10 +132,30 @@ export default function ConsultationFormPage() {
       </h1>
 
       <form
-        onSubmit={handleSubmit((data) => mutation.mutate(data))}
+        onSubmit={handleSubmit((data) => {
+          // адмін має явно обрати клієнта (сам сервер для ролі CLIENT підставляє req.user.userId)
+          if (isAdmin && !isEdit && !data.clientId) {
+            setError('clientId', { message: 'Оберіть клієнта' });
+            return;
+          }
+          mutation.mutate(data);
+        })}
         className="space-y-4 rounded-lg bg-white p-6 shadow dark:bg-gray-900"
         noValidate
       >
+        {isAdmin && !isEdit && (
+          <FormField label="Клієнт (від імені кого створюємо)" error={errors.clientId?.message}>
+            <Select {...register('clientId')}>
+              <option value="">Оберіть клієнта...</option>
+              {clients?.data.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.email})
+                </option>
+              ))}
+            </Select>
+          </FormField>
+        )}
+
         <FormField label="Юрист" error={errors.lawyerId?.message}>
           {lawyersLoading ? (
             <Input disabled placeholder="Завантаження списку юристів..." />
@@ -117,7 +163,8 @@ export default function ConsultationFormPage() {
             <Select {...register('lawyerId')}>
               <option value="">Оберіть юриста...</option>
               {lawyers?.data.map((l) => (
-                <option key={l.id} value={l.id}>
+                // createConsultation чекає lawyerId = userId юриста (findByUserId), не id профілю
+                <option key={l.id} value={l.userId}>
                   {l.user?.name ?? `Юрист #${l.userId}`} —{' '}
                   {l.specializations?.map((s) => s.name).join(', ') ?? 'сфери не вказано'}
                 </option>

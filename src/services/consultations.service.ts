@@ -22,6 +22,8 @@ export interface ConsultationPayload {
   topic: string;
   description: string;
   scheduledAt?: string;
+  /** лише для ADMIN — від імені якого клієнта створюємо */
+  clientId?: number;
 }
 
 export interface ConsultationUpdatePayload {

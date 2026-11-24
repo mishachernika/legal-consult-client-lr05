@@ -1,155 +1,123 @@
-# LegalConsult — клієнтська частина (ЛР04)
+# LegalConsult — клієнтська частина (ЛР04 + ЛР05)
 
 ## Автор
 
-Чернік Михайло Богданович, група ІПЗ-41
+Чернік Михайло Богданович, група ІПЗ-41, Волинський фаховий коледж НУХТ
 
 ## Опис проєкту
 
-React-клієнт для **онлайн-платформи юридичних консультацій**. Серверна частина розміщена в окремому репозиторії `legal-consult-api-lr03` (Node.js + Express + Prisma + PostgreSQL + Socket.io).
+React-клієнт для **онлайн-платформи юридичних консультацій**. Серверна частина — окремий репозиторій `legal-consult-api-lr03` (Node.js + Express + Prisma + PostgreSQL + Socket.io). ЛР04 — базова архітектура (Vite + TS + Tailwind 4 + роутинг + UI-компоненти + темна тема); ЛР05 — повнофункціональний інтерфейс: аутентифікація, захищені маршрути, CRUD сутностей, валідація форм, пошук/пагінація/сортування, сповіщення.
 
-У цій лабораторній я побудував основу клієнтської частини: налаштував проєкт, структуру папок, дизайн-систему, маршрутизацію, dark-режим та інтеграційний шар для API. Також додав мінімальну робочу сторінку входу / реєстрації: вона використовує реальні Axios-сервіси, після успішної відповіді сервера зберігає JWT-токени та показує стан завантаження або помилку. Особистий кабінет, каталог юристів із серверними даними й чат планую розвивати у наступних лабораторних.
+## Функціональність
 
-## Що я реалізував
-
-| Напрям | Результат |
-|---|---|
-| Основа | Vite 8, React 19, TypeScript 6, абсолютні імпорти `@/` |
-| UI | Button, Input, Card, Badge, Loading, ErrorBoundary; єдина Layout-оболонка |
-| Навігація | Home, About, Login/Register, 404; desktop і mobile-меню |
-| Стилізація | Tailwind CSS 4, власна палітра через `@theme`, світла й темна теми |
-| API | Axios instance, JWT request-interceptor, 401 response-interceptor, типізовані auth/specializations-сервіси |
-| Якість | ESLint 10, Prettier, strict TypeScript, CI на GitHub Actions |
+- Аутентифікація JWT (login/register, refresh-on-401), сесія у Zustand з `persist` (localStorage `auth-storage`)
+- Захищені маршрути (`ProtectedRoute`, редірект на `/login` із поверненням на `state.from`)
+- Панель керування (Dashboard) з адаптивною бічною панеллю (згортання на desktop, overlay на mobile)
+- CRUD консультацій: список (пошук + фільтр за статусом + пагінація), створення/редагування (форма з вибором юриста), детальна сторінка (зміна статусу за роллю, чат, відгук, видалення з модальним підтвердженням)
+- Каталог юристів: пошук, фільтр за сферою права, сортування (рейтинг/ціна/досвід), пагінація, детальна сторінка з відгуками
+- Сфери права: список усім, адмін-операції (create/edit/delete) лише для ролі ADMIN
+- Сповіщення: список, фільтр непрочитаних, «прочитати все», видалення
+- Валідація форм: React Hook Form + Zod 4 (`zodResolver`, `z.input`/`z.output`)
+- Дані сервера: TanStack Query (`useQuery`/`useMutation`, `invalidateQueries`, `keepPreviousData`); клієнтський стан сесії: Zustand
+- Сповіщення про успіх/помилки: react-hot-toast; централізована помилка Axios (interceptors + `getErrorMessage`)
+- UX: скелетні індикатори (Skeleton/TableSkeleton/CardGridSkeleton), debounce-пошук, breadcrumbs, порожні стани, темна тема
 
 ## Технології
 
 - React 19 + TypeScript 6
 - Vite 8 (Rolldown)
-- Tailwind CSS 4 (налаштування в CSS через `@theme`, без `tailwind.config.js`)
-- React Router 8 (імпорти з пакета `react-router`)
-- Axios з інтерцепторами
-- ESLint 10 (flat config) + Prettier + eslint-config-prettier
+- Tailwind CSS 4 (`@theme`, `@custom-variant dark`)
+- React Router 8
+- Axios (interceptors: токен із store, refresh-on-401, нормалізація помилок)
+- React Hook Form 7 + Zod 4 + @hookform/resolvers
+- Zustand 5 (persist) — сесія користувача
+- TanStack Query 5 — дані сервера (кеш за queryKey, інвалідація)
+- react-hot-toast — toast-сповіщення
+- ESLint 10 (flat config) + Prettier
+
+## API-ендпоінти серверної частини (legal-consult-api-lr03)
+
+| Метод | Шлях | Призначення |
+|---|---|---|
+| POST | `/api/auth/register` · `/api/auth/login` · `/api/auth/refresh` · `/api/auth/logout` · `/api/auth/me` | аутентифікація, сесія |
+| GET/POST | `/api/consultations` · GET/PUT/DELETE `/api/consultations/:id` | CRUD консультацій |
+| GET/POST | `/api/consultations/:id/messages` | чат консультації |
+| GET | `/api/lawyers` (search, specializationId, minPrice/maxPrice, sortBy, order, page, limit) · GET `/api/lawyers/:id` | каталог юристів |
+| GET | `/api/specializations` · POST/PUT/DELETE (ADMIN) | сфери права |
+| GET | `/api/notifications` (unread, page, limit) · POST `/:id/read`, `/read-all` · DELETE `/:id` | сповіщення |
+| POST | `/api/reviews` | відгук після завершеної консультації |
+| GET | `/api/users` (лише ADMIN) | вибір клієнта у формі (адмін) |
 
 ## Встановлення та запуск
 
 ### Вимоги
 
-- Node.js 24 LTS (`node -v`)
-- npm
-- запущена серверна частина з ЛР03 на `http://localhost:3000` (для API-запитів)
+- Node.js 24 LTS
+- Запущена серверна частина з ЛР03 на `http://localhost:3000`
 
 ### Інструкції
 
 ```bash
-# Клонування репозиторію
-git clone https://github.com/mishachernika/legal-consult-client-lr04.git
-cd legal-consult-client-lr04
-
-# Встановлення залежностей
+git clone https://github.com/mishachernika/legal-consult-client-lr05.git
+cd legal-consult-client-lr05
 npm install
-
-# Копіювання .env файлу (VITE_API_URL, VITE_APP_NAME)
-cp .env.example .env
-
-# Перевірки якості коду
-npm run lint           # ESLint
-npm run format:check   # Prettier (перевірка)
-npm run format         # Prettier (автоформатування src)
-
-# Запуск у режимі розробки (http://localhost:5173)
-npm run dev
-
-# Збірка для продакшену (typecheck + бандл у dist/)
-npm run build
-
-# Перегляд продакшен-збірки
-npm run preview        # http://localhost:4173
+cp .env.example .env        # VITE_API_URL=http://localhost:3000/api
+npm run dev                  # http://localhost:5173
+npm run lint                 # ESLint
+npm run format:check         # Prettier
+npm run build                # typecheck + продакшен-збірка
+npm run preview              # перегляд збірки на :4173
 ```
 
-### Змінні середовища
+### Тестовий обліковий запис (seed сервера ЛР03)
 
-Vite віддає в код лише змінні з префіксом `VITE_` — тому в них **не можна** зберігати секрети ( вони потрапляють у фінальний бандл, який бачить будь-хто). Локальний `.env` додано до `.gitignore`.
-
-| Файл | Призначення |
-|---|---|
-| `.env` | локальний, не комітиться (див. `.gitignore`) |
-| `.env.example` | шаблон зі змінними без реальних значень |
-| `.env.development` | `npm run dev` — `VITE_API_URL=http://localhost:3000/api` |
-| `.env.production` | `npm run build` — адреса продакшен-API |
+```
+Email: admin@legal.ua   (також юристи *@legal.ua, клієнти *@example.com)
+Password: password123
+```
 
 ## Структура проєкту
 
 ```
 src/
-├── components/      # Повторно використовувані UI-компоненти
-│   ├── common/      # Button, Input, Card, Badge, Loading, ErrorBoundary
-│   └── layout/      # Header, Footer, Layout
-├── pages/           # Сторінки маршрутів (Home, About, NotFound)
-├── services/        # Axios-інстанс з інтерцепторами + API-сервіси (auth, specializations)
-├── types/           # Типи відповідей API (api.types.ts, auth.types.ts)
-├── utils/           # format.ts (дата/ціна/розмір), cn.ts (класи Tailwind)
-├── hooks/           # useTheme (світла/темна тема)
-└── constants/       # APP_NAME, ROUTES, STORAGE_KEYS, CONTACTS, підписи enum'ів
+├── components/
+│   ├── common/        # Button, Input, Select, Textarea, Card, Badge, Loading, FormField,
+│   │                  # ErrorMessage, Skeleton-и, Modal, Table, Grid, List, Pagination,
+│   │                  # Breadcrumbs, EmptyState, ErrorBoundary
+│   ├── layout/        # Header, Footer, Layout (публічні) + DashboardLayout (sidebar кабінету)
+│   └── ProtectedRoute.tsx
+├── pages/             # Home, About, NotFound, Login, Register, Dashboard, Consultations*,
+│                      # Lawyers*, Specializations*, Notifications
+├── services/          # api.ts (Axios + інтерцептори) + auth/users/lawyers/consultations/
+│                      # specializations/notifications/reviews сервіси
+├── stores/            # authStore.ts (Zustand persist — сесія)
+├── schemas/           # Zod-схеми форм (auth, consultation, specialization)
+├── types/             # типи API (api.types.ts, auth.types.ts) — під схему Prisma сервера
+├── hooks/             # useTheme, useDebounce
+├── utils/             # format.ts, cn.ts, errors.ts
+└── constants/         # APP_NAME, ROUTES, DASHBOARD_NAV, CONTACTS, лейбли enum'ів
 ```
 
-Абсолютні імпорти через псевдонім `@/` налаштовано і в `tsconfig.app.json` (`paths`), і у `vite.config.ts` (`resolve.alias`).
+Абсолютні імпорти `@/` — у `tsconfig.app.json` (`paths`) і `vite.config.ts` (`resolve.alias`).
 
-## Маршрути
+## Скріншоти (ЛР05)
 
-| Шлях | Сторінка |
+| Файл у `reports/screenshots/` | Зміст |
 |---|---|
-| `/` | HomePage — hero, статистика, каталог сфер права з пошуком, кроки роботи |
-| `/about` | AboutPage — про платформу, технології, контакти |
-| `/login` | AuthPage — вкладки входу/реєстрації, стани loading/error, збереження JWT після успішної відповіді |
-| `*` | NotFoundPage — 404 |
-
-## Приклади інтерфейсу
-
-### Головна сторінка
-
-![Головна сторінка LegalConsult у світлій темі](reports/screenshots/lab4-home-light.png)
-
-Головна демонструє адаптивну сітку, reusable-компоненти, пошук сфер права на клієнті та CTA-блок.
-
-### Сторінка «Про платформу»
-
-![Рисунок 2 — сторінка про LegalConsult із контактами луцького офісу](reports/screenshots/lab4-about-current.png)
-
-На цій сторінці я зібрав короткий опис сервісу, пояснення моделі перевірки юристів, стек технологій і реальні контактні дані.
-
-### Адаптивний вигляд
-
-![Рисунок 3 — головна сторінка на мобільному екрані](reports/screenshots/lab4-home-mobile.png)
-
-Для малого екрана макет переходить в одну колонку: картки статистики та сфери права не стискаються, а навігація змінюється на мобільне меню.
-
-### Вхід і реєстрація
-
-![Рисунок 1 — сторінка входу LegalConsult у темній темі](reports/screenshots/lab4-auth.png)
-
-Сторінка працює з `authService`: після успішного входу або реєстрації зберігає access/refresh токени, а помилки API показує користувачу в доступному `role="alert"` блоці.
-
-### Інші перевірені стани
-
-| Файл | Що на скріншоті |
-|---|---|
-| `reports/screenshots/lab4-home-light.png` | Головна сторінка, світла тема (desktop 1440px) |
-| `reports/screenshots/lab4-home-dark.png` | Головна сторінка, темна тема (клас `dark` на `<html>`) |
-| `reports/screenshots/lab4-about.png` | Сторінка «Про нас» |
-| `reports/screenshots/lab4-notfound.png` | Сторінка 404 |
-| `reports/screenshots/lab4-home-mobile.png` | Адаптивна мобільна версія (390px, бургер-меню) |
-| `reports/screenshots/lab4-home-mobile-dark.png` | Мобільна версія, темна тема |
-| `reports/screenshots/lab4-terminal-lint.png` | `npm run lint` + `npm run format:check` у Terminal |
-| `reports/screenshots/lab4-terminal-build.png` | `npm run build` (tsc -b && vite build) у Terminal |
-| `reports/screenshots/lab4-terminal-dev.png` | `npm run dev` — Vite піднявся на http://localhost:5173 |
-
-## Як я організував проєкт
-
-- `Layout` поєднує Header, Footer, `Outlet` і `ErrorBoundary`, тому всі маршрути мають єдиний каркас і захист від помилок рендерингу.
-- `src/services/api.ts` залишив єдиним місцем конфігурації HTTP: base URL з `VITE_API_URL`, timeout, Bearer-токен і нормалізація помилок.
-- У `src/types/` описав контракт із сервером ЛР01–ЛР03; Decimal-поля передаються рядками, а для пагінації використовую generic-тип `PaginatedResponse<T>`.
-- `useTheme` зберігає вибір у `localStorage`, синхронізує клас `dark` на `<html>` і має fallback на системну тему.
-- Усі базові компоненти мають типізовані props; зокрема, `Button` підтримує variant, size і loading-стан без дублювання стилів.
+| `lab5-login.png` / `lab5-login-validation.png` | сторінка входу; помилки Zod при порожньому submit |
+| `lab5-register.png` | сторінка реєстрації |
+| `lab5-dashboard.png` / `lab5-dashboard-dark.png` | панель керування, світла/темна тема |
+| `lab5-consultations.png` | список консультацій (пошук, фільтр, таблиця) |
+| `lab5-delete-modal.png` | модальне підтвердження видалення |
+| `lab5-consultation-detail.png` / `lab5-consultation-chat.png` | деталі консультації + чат із повідомленнями |
+| `lab5-consultation-form-validation.png` | помилки валідації форми створення |
+| `lab5-consultation-created.png` | створена консультація (після submit → деталі) |
+| `lab5-consultations-after-delete.png` | список після видалення тестової консультації |
+| `lab5-lawyers.png` / `lab5-lawyer-detail.png` | каталог юристів (сітка, фільтри, сортування) і профіль |
+| `lab5-specializations.png` | сфери права (у адміна — кнопки редагування) |
+| `lab5-notifications.png` | сповіщення зі значками пріоритетів |
+| `lab5-mobile-dashboard.png` / `lab5-mobile-sidebar.png` | мобільна версія + відкрита бічна панель |
+| `lab5-terminal-lint.png` / `lab5-terminal-build.png` | `npm run lint`/`format:check` і `npm run build` у Terminal |
 
 ## CI
 
