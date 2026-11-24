@@ -117,11 +117,12 @@ export default function ConsultationDetailPage() {
   if (isError || !consultation)
     return <ErrorMessage message={error?.message ?? 'Консультацію не знайдено'} />;
 
-  const isClient = user?.role === 'CLIENT' || user?.id === consultation.clientId;
-  const isLawyer = user?.role === 'LAWYER' || user?.id === consultation.lawyerId;
+  const isClient = user?.id === consultation.clientId;
+  const isLawyer = user?.id === consultation.lawyerId;
   const canChangeStatus =
     user?.role === 'ADMIN' || isLawyer || (isClient && consultation.status === 'PENDING');
   const canEdit = user?.role === 'ADMIN' || (isClient && consultation.status === 'PENDING');
+  const canDelete = user?.role === 'ADMIN' || (isClient && consultation.status === 'PENDING');
   const availableStatuses = NEXT_STATUS[consultation.status].filter(
     (s) => user?.role === 'ADMIN' || user?.role === 'LAWYER' || s === 'CANCELLED'
   );
@@ -154,9 +155,11 @@ export default function ConsultationDetailPage() {
               Редагувати
             </Button>
           )}
-          <Button variant="danger" onClick={() => setDeleteOpen(true)}>
-            Видалити
-          </Button>
+          {canDelete && (
+            <Button variant="danger" onClick={() => setDeleteOpen(true)}>
+              Видалити
+            </Button>
+          )}
         </div>
       </div>
 

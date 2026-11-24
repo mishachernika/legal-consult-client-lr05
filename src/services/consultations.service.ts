@@ -27,6 +27,8 @@ export interface ConsultationPayload {
 }
 
 export interface ConsultationUpdatePayload {
+  /** Змінити юриста може лише ADMIN; сервер перевіряє роль. */
+  lawyerId?: number;
   topic?: string;
   description?: string;
   scheduledAt?: string | null;

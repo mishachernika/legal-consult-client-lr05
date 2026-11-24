@@ -34,7 +34,7 @@
 11. Підтвердження та видалення — модальне вікно `Modal` замість `confirm()`, `useMutation` + `invalidateQueries` — **виконано**;
 12. Валідація React Hook Form + Zod — `src/schemas/*.schema.ts` (Zod 4: `z.email()`, `error`-параметр, `z.coerce` для select/number, transform `''`→`undefined`; типи `z.input`/`z.output` у `useForm<Input, unknown, Output>`) — **виконано**;
 13. Повторні компоненти Table, List, Grid — `components/common/Table.tsx` (колонки даними), `List.tsx`, `Grid.tsx` — **виконано**;
-14. Пагінація — `Pagination` поверх формату відповіді сервера `{ data, pagination: { page, limit, total, totalPages, hasMore } }` — **виконано**.
+14. Пагінація — `Pagination` поверх формату відповіді сервера `{ data, pagination: { page, limit, total, totalPages, hasMore } }` для консультацій, каталогу юристів і сповіщень — **виконано**. Довідник сфер права API повертає одним невеликим масивом, тому для нього застосовано локальний пошук без штучної пагінації.
 
 ### Рівень 3 — розширений UI/UX та стан
 
@@ -56,7 +56,7 @@
 5. **TanStack Query:** `QueryClientProvider` + `Toaster` у `main.tsx`; сервіси (`consultations/lawyers/specializations/notifications/reviews/users/auth`) — тонкі HTTP-обгортки; у сторінках `useQuery` із ключами на кшталт `['consultations', { page, search, status }]` і `placeholderData: keepPreviousData`; після мутацій — `invalidateQueries`.
 6. **CRUD consultation:** список (Table + пошук із debounce + фільтр статусу + пагінація + видалення через Modal), форма create/edit (для ADMIN додатково вибір клієнта зі списку `/api/users?role=CLIENT` — сервер вимагає `clientId` від адміна), детальна сторінка: картка деталей, кнопки зміни статусу за роллю, чат (список повідомлень + форма відправки), форма відгуку (клієнт, COMPLETED, якщо ще не лишав), видалення з модалкою.
 7. **Юристи:** каталог картками (Grid) із пошуком, фільтром за сферою, сортуванням і пагінацією; детальна сторінка з відгуками; кнопка «Замовити консультацію» веде на `/consultations/create?lawyerId=…` (prefill).
-8. **Сфери права:** список + пошук; адмін бачить CRUD (create/edit сторінки + видалення з модалкою).
+8. **Сфери права:** API ЛР03 повертає невеликий довідник одним масивом, тому пошук виконано локально; адмін бачить CRUD (create/edit сторінки + видалення з модалкою).
 9. **Сповіщення:** список (List) із бейджами типу/пріоритету, фільтр «Лише непрочитані», «Прочитати всі», видалення, лічильник unreadCount.
 10. **UX:** Breadcrumbs, EmptyState, ErrorMessage, Skeleton-и, debounce, темна тема (з ЛР04), адаптивний sidebar.
 11. **Перевірка e2e (headless Chrome + живий сервер :3000):** login → dashboard; валідація порожньої форми; список консультацій; відкриття деталі; відправка повідомлення в чат; створення консультації через форму (як адмін із вибором клієнта); перехід на сторінку створеної; видалення її через модалку; каталог юристів, деталі юриста, сфери, сповіщення; темна тема; mobile + sidebar. Усе знято на скріншоти (див. §6).

@@ -1,16 +1,12 @@
 import api from './api';
-import type { PaginatedResponse, SingleResponse, Specialization } from '@/types/api.types';
+import type { SingleResponse, Specialization } from '@/types/api.types';
 
 // Сервіс сфер права: публічний каталог + адмін-операції (POST/PUT/DELETE — лише ADMIN)
-export interface SpecializationQuery {
-  page?: number;
-  limit?: number;
-  search?: string;
-}
-
 export const specializationsService = {
-  getAll: (params: SpecializationQuery = {}) =>
-    api.get<PaginatedResponse<Specialization>>('/specializations', { params }).then((r) => r.data),
+  // API ЛР03 повертає довідник одним масивом у { data }, без серверної пагінації чи пошуку.
+  // Пошук на сторінці виконується локально: перелік сфер невеликий і кешується сервером.
+  getAll: () =>
+    api.get<SingleResponse<Specialization[]>>('/specializations').then((r) => r.data.data),
   getById: (id: number) =>
     api.get<SingleResponse<Specialization>>(`/specializations/${id}`).then((r) => r.data.data),
   create: (payload: { name: string; description?: string }) =>

@@ -15,7 +15,7 @@ React-клієнт для **онлайн-платформи юридичних �
 - Панель керування (Dashboard) з адаптивною бічною панеллю (згортання на desktop, overlay на mobile)
 - CRUD консультацій: список (пошук + фільтр за статусом + пагінація), створення/редагування (форма з вибором юриста), детальна сторінка (зміна статусу за роллю, чат, відгук, видалення з модальним підтвердженням)
 - Каталог юристів: пошук, фільтр за сферою права, сортування (рейтинг/ціна/досвід), пагінація, детальна сторінка з відгуками
-- Сфери права: список усім, адмін-операції (create/edit/delete) лише для ролі ADMIN
+- Сфери права: локальний пошук у довіднику; адмін-операції (create/edit/delete) лише для ролі ADMIN
 - Сповіщення: список, фільтр непрочитаних, «прочитати все», видалення
 - Валідація форм: React Hook Form + Zod 4 (`zodResolver`, `z.input`/`z.output`)
 - Дані сервера: TanStack Query (`useQuery`/`useMutation`, `invalidateQueries`, `keepPreviousData`); клієнтський стан сесії: Zustand
@@ -100,24 +100,57 @@ src/
 
 Абсолютні імпорти `@/` — у `tsconfig.app.json` (`paths`) і `vite.config.ts` (`resolve.alias`).
 
-## Скріншоти (ЛР05)
+## Демонстрація роботи
 
-| Файл у `reports/screenshots/` | Зміст |
-|---|---|
-| `lab5-login.png` / `lab5-login-validation.png` | сторінка входу; помилки Zod при порожньому submit |
-| `lab5-register.png` | сторінка реєстрації |
-| `lab5-dashboard.png` / `lab5-dashboard-dark.png` | панель керування, світла/темна тема |
-| `lab5-consultations.png` | список консультацій (пошук, фільтр, таблиця) |
-| `lab5-delete-modal.png` | модальне підтвердження видалення |
-| `lab5-consultation-detail.png` / `lab5-consultation-chat.png` | деталі консультації + чат із повідомленнями |
-| `lab5-consultation-form-validation.png` | помилки валідації форми створення |
-| `lab5-consultation-created.png` | створена консультація (після submit → деталі) |
-| `lab5-consultations-after-delete.png` | список після видалення тестової консультації |
-| `lab5-lawyers.png` / `lab5-lawyer-detail.png` | каталог юристів (сітка, фільтри, сортування) і профіль |
-| `lab5-specializations.png` | сфери права (у адміна — кнопки редагування) |
-| `lab5-notifications.png` | сповіщення зі значками пріоритетів |
-| `lab5-mobile-dashboard.png` / `lab5-mobile-sidebar.png` | мобільна версія + відкрита бічна панель |
-| `lab5-terminal-lint.png` / `lab5-terminal-build.png` | `npm run lint`/`format:check` і `npm run build` у Terminal |
+### 1. Вхід і валідація форм
+
+Сторінки входу й реєстрації використовують React Hook Form + Zod. Некоректні дані не надсилаються на сервер, а помилки відображаються поруч із відповідними полями.
+
+![Вхід до LegalConsult](reports/screenshots/lab5-login.png)
+
+![Помилки валідації під час входу](reports/screenshots/lab5-login-validation.png)
+
+### 2. Захищений особистий кабінет
+
+Після входу користувач потрапляє на Dashboard. Стан сесії зберігається у Zustand, а верхня панель дозволяє змінити тему або коректно завершити сесію через API.
+
+![Панель керування LegalConsult](reports/screenshots/lab5-dashboard.png)
+
+![Dashboard у темній темі](reports/screenshots/lab5-dashboard-dark.png)
+
+### 3. Консультації: повний робочий сценарій
+
+Реалізовано серверний пошук і фільтрацію, пагінацію, створення та редагування заявок відповідно до ролі користувача, модальне підтвердження видалення, чат і відгуки після завершення консультації.
+
+![Список консультацій із пошуком та фільтром](reports/screenshots/lab5-consultations.png)
+
+![Валідація форми створення консультації](reports/screenshots/lab5-consultation-form-validation.png)
+
+![Детальна сторінка консультації](reports/screenshots/lab5-consultation-detail.png)
+
+![Чат учасників консультації](reports/screenshots/lab5-consultation-chat.png)
+
+### 4. Каталог юристів і довідники
+
+Каталог юристів має пошук із debounce, фільтр за сферою права, серверне сортування та пагінацію. Адміністратор може підтримувати довідник сфер права.
+
+![Каталог юристів](reports/screenshots/lab5-lawyers.png)
+
+![Профіль юриста з відгуками](reports/screenshots/lab5-lawyer-detail.png)
+
+![Адміністрування сфер права](reports/screenshots/lab5-specializations.png)
+
+### 5. Сповіщення та адаптивність
+
+Користувач переглядає, позначає прочитаними та видаляє власні сповіщення. На малих екранах бічна панель відкривається поверх контенту.
+
+![Список сповіщень](reports/screenshots/lab5-notifications.png)
+
+![Мобільна бічна панель](reports/screenshots/lab5-mobile-sidebar.png)
+
+### Перевірка якості
+
+![Успішні lint, форматування та production build](reports/screenshots/lab5-terminal-build.png)
 
 ## CI
 

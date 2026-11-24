@@ -52,8 +52,8 @@ export default function LawyersListPage() {
   });
 
   const { data: specializations } = useQuery({
-    queryKey: ['specializations', { limit: 100 }],
-    queryFn: () => specializationsService.getAll({ limit: 100 }),
+    queryKey: ['specializations'],
+    queryFn: specializationsService.getAll,
   });
 
   function updateParams(patch: Record<string, string>) {
@@ -86,7 +86,7 @@ export default function LawyersListPage() {
           onChange={(e) => updateParams({ specializationId: e.target.value, page: '1' })}
         >
           <option value="">Усі сфери права</option>
-          {specializations?.data.map((s) => (
+          {specializations?.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
             </option>

@@ -64,6 +64,12 @@ export default function ConsultationsListPage() {
     onError: (e) => toast.error(e.message || 'Не вдалося видалити консультацію'),
   });
 
+  // Правила повторюють серверні: адміністратор видаляє будь-яку консультацію,
+  // клієнт — лише власну, доки вона очікує підтвердження.
+  const canDelete = (consultation: Consultation) =>
+    user?.role === 'ADMIN' ||
+    (consultation.clientId === user?.id && consultation.status === 'PENDING');
+
   const columns: TableColumn<Consultation>[] = [
     { key: 'id', header: 'ID', render: (c) => c.id },
     { key: 'topic', header: 'Тема', render: (c) => <span className="font-medium">{c.topic}</span> },
@@ -97,9 +103,11 @@ export default function ConsultationsListPage() {
           <Button size="sm" variant="secondary" onClick={() => navigate(`/consultations/${c.id}`)}>
             Деталі
           </Button>
-          <Button size="sm" variant="danger" onClick={() => setDeleteId(c.id)}>
-            Видалити
-          </Button>
+          {canDelete(c) && (
+            <Button size="sm" variant="danger" onClick={() => setDeleteId(c.id)}>
+              Видалити
+            </Button>
+          )}
         </span>
       ),
     },

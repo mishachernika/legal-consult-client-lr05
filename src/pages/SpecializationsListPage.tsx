@@ -1,19 +1,15 @@
-import { useState } from 'react';
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 import Breadcrumbs from '@/components/common/Breadcrumbs';
 import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
 import Modal from '@/components/common/Modal';
-import Pagination from '@/components/common/Pagination';
 import { TableSkeleton } from '@/components/common/Skeleton';
 import Table, { type TableColumn } from '@/components/common/Table';
 import { useDebounce } from '@/hooks/useDebounce';
-import {
-  specializationsService,
-  type SpecializationQuery,
-} from '@/services/specializations.service';
+import { specializationsService } from '@/services/specializations.service';
 import { useAuthStore } from '@/stores/authStore';
 import type { Specialization } from '@/types/api.types';
 
@@ -24,18 +20,28 @@ export default function SpecializationsListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const debouncedSearch = useDebounce(search);
 
-  const query: SpecializationQuery = { page, limit: 10, search: debouncedSearch || undefined };
-
-  const { data, isPending, isError, error } = useQuery({
-    queryKey: ['specializations', query],
-    queryFn: () => specializationsService.getAll(query),
-    placeholderData: keepPreviousData,
+  const {
+    data: specializations = [],
+    isPending,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ['specializations'],
+    queryFn: specializationsService.getAll,
   });
+
+  // У серверному API ЛР03 довідник не пагінується, тому фільтруємо невеликий набір на клієнті.
+  const filteredSpecializations = useMemo(() => {
+    const needle = debouncedSearch.trim().toLocaleLowerCase();
+    if (!needle) return specializations;
+    return specializations.filter((item) =>
+      `${item.name} ${item.description ?? ''}`.toLocaleLowerCase().includes(needle)
+    );
+  }, [debouncedSearch, specializations]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => specializationsService.remove(id),
@@ -76,7 +82,7 @@ export default function SpecializationsListPage() {
       : []),
   ];
 
-  const deleting = data?.data.find((s) => s.id === deleteId);
+  const deleting = specializations.find((s) => s.id === deleteId);
 
   return (
     <div>
@@ -98,7 +104,6 @@ export default function SpecializationsListPage() {
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
-            setPage(1);
           }}
         />
       </div>
@@ -110,15 +115,14 @@ export default function SpecializationsListPage() {
         </p>
       )}
 
-      {data && (
+      {!isPending && !isError && (
         <>
           <Table
             columns={columns}
-            rows={data.data}
+            rows={filteredSpecializations}
             rowKey={(s) => s.id}
             emptyMessage="Сфери права не знайдено"
           />
-          <Pagination meta={data.pagination} page={page} onPageChange={setPage} />
         </>
       )}
 

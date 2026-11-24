@@ -47,6 +47,10 @@ export default function ConsultationFormPage() {
     queryFn: () => consultationsService.getById(consultationId),
     enabled: isEdit,
   });
+  const isClientEditing = isEdit && existing?.clientId === user?.id;
+  const isLawyerEditing = isEdit && existing?.lawyerId === user?.id;
+  const canChooseLawyer = !isEdit || isAdmin;
+  const canEditRequestDetails = !isEdit || isAdmin || isClientEditing;
 
   // Список клієнтів потрібен лише адміну (він вибирає, від імені кого створити консультацію)
   const { data: clients } = useQuery({
@@ -87,23 +91,35 @@ export default function ConsultationFormPage() {
 
   const mutation = useMutation({
     mutationFn: (data: ConsultationFormData) => {
-      const payload: {
-        lawyerId: number;
-        topic: string;
-        description: string;
-        scheduledAt?: string;
-        clientId?: number;
-      } = {
+      if (isEdit) {
+        // Сервер дозволяє клієнту редагувати заявку, юристу — лише час/статус,
+        // а адміністратору — усі поля. Не надсилаємо поля, які сервер ігноруватиме.
+        if (isLawyerEditing && !isAdmin) {
+          return consultationsService.update(consultationId, { scheduledAt: data.scheduledAt });
+        }
+        if (isClientEditing && !isAdmin) {
+          return consultationsService.update(consultationId, {
+            topic: data.topic,
+            description: data.description,
+            scheduledAt: data.scheduledAt,
+          });
+        }
+        return consultationsService.update(consultationId, {
+          lawyerId: data.lawyerId,
+          topic: data.topic,
+          description: data.description,
+          scheduledAt: data.scheduledAt,
+        });
+      }
+
+      const payload = {
         lawyerId: data.lawyerId,
         topic: data.topic,
         description: data.description,
         scheduledAt: data.scheduledAt,
+        ...(isAdmin && data.clientId ? { clientId: data.clientId } : {}),
       };
-      // clientId передаємо лише адмін (для клієнта сервер підставляє req.user.userId сам)
-      if (isAdmin && data.clientId) payload.clientId = data.clientId;
-      return isEdit
-        ? consultationsService.update(consultationId, payload)
-        : consultationsService.create(payload);
+      return consultationsService.create(payload);
     },
     onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: ['consultations'] });
@@ -157,37 +173,53 @@ export default function ConsultationFormPage() {
         )}
 
         <FormField label="Юрист" error={errors.lawyerId?.message}>
-          {lawyersLoading ? (
-            <Input disabled placeholder="Завантаження списку юристів..." />
+          {canChooseLawyer ? (
+            lawyersLoading ? (
+              <Input disabled placeholder="Завантаження списку юристів..." />
+            ) : (
+              <Select {...register('lawyerId')}>
+                <option value="">Оберіть юриста...</option>
+                {lawyers?.data.map((l) => (
+                  // createConsultation чекає lawyerId = userId юриста (findByUserId), не id профілю
+                  <option key={l.id} value={l.userId}>
+                    {l.user?.name ?? `Юрист #${l.userId}`} —{' '}
+                    {l.specializations?.map((s) => s.name).join(', ') ?? 'сфери не вказано'}
+                  </option>
+                ))}
+              </Select>
+            )
           ) : (
-            <Select {...register('lawyerId')}>
-              <option value="">Оберіть юриста...</option>
-              {lawyers?.data.map((l) => (
-                // createConsultation чекає lawyerId = userId юриста (findByUserId), не id профілю
-                <option key={l.id} value={l.userId}>
-                  {l.user?.name ?? `Юрист #${l.userId}`} —{' '}
-                  {l.specializations?.map((s) => s.name).join(', ') ?? 'сфери не вказано'}
-                </option>
-              ))}
-            </Select>
+            <>
+              <input type="hidden" {...register('lawyerId')} />
+              <Input value={existing?.lawyer?.name ?? 'Обраний юрист'} disabled />
+            </>
           )}
         </FormField>
 
-        <FormField label="Тема" error={errors.topic?.message} hint="5–200 символів">
-          <Input placeholder="Наприклад: оскарження штрафу поліції" {...register('topic')} />
-        </FormField>
+        {canEditRequestDetails ? (
+          <>
+            <FormField label="Тема" error={errors.topic?.message} hint="5–200 символів">
+              <Input placeholder="Наприклад: оскарження штрафу поліції" {...register('topic')} />
+            </FormField>
 
-        <FormField
-          label="Опис ситуації"
-          error={errors.description?.message}
-          hint="10–5000 символів"
-        >
-          <Textarea
-            rows={6}
-            placeholder="Опишіть деталі вашого питання..."
-            {...register('description')}
-          />
-        </FormField>
+            <FormField
+              label="Опис ситуації"
+              error={errors.description?.message}
+              hint="10–5000 символів"
+            >
+              <Textarea
+                rows={6}
+                placeholder="Опишіть деталі вашого питання..."
+                {...register('description')}
+              />
+            </FormField>
+          </>
+        ) : (
+          <p className="rounded-lg bg-gray-50 p-3 text-sm text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+            Як юрист ви можете змінити запланований час; тему й опис змінює клієнт до підтвердження
+            заявки.
+          </p>
+        )}
 
         <FormField label="Запланований час (необов'язково)" error={errors.scheduledAt?.message}>
           <Input type="datetime-local" {...register('scheduledAt')} />
@@ -202,12 +234,14 @@ export default function ConsultationFormPage() {
           <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
             Скасувати
           </Button>
-          <Link
-            to="/lawyers"
-            className="ml-auto self-center text-sm text-primary-600 hover:underline"
-          >
-            Спочатку обрати юриста в каталозі →
-          </Link>
+          {!isEdit && (
+            <Link
+              to="/lawyers"
+              className="ml-auto self-center text-sm text-primary-600 hover:underline"
+            >
+              Спочатку обрати юриста в каталозі →
+            </Link>
+          )}
         </div>
       </form>
     </div>
